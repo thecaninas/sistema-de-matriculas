@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Mail, Download, Share2, GraduationCap, BookOpen, Database, CheckCircle, AlertCircle, MessageCircle, Loader } from 'lucide-react';
+import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Download, GraduationCap, BookOpen, Database, CheckCircle, AlertCircle, MessageCircle, Loader } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import { blobToBase64, sendDocumentViaWhatsApp } from '@/services/whatsappService';
 import './App.css';
@@ -48,9 +48,6 @@ function App() {
   const [activeTab, setActiveTab] = useState<'formulario' | 'historico'>('formulario');
   const [historico, setHistorico] = useState<Declaracao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [emailDestinatario, setEmailDestinatario] = useState('');
-  const [mostrarEmailOpcoes, setMostrarEmailOpcoes] = useState(false);
-  
   // WhatsApp
   const [numeroWhatsApp, setNumeroWhatsApp] = useState('');
   const [mostrarWhatsAppOpcoes, setMostrarWhatsAppOpcoes] = useState(false);
@@ -341,50 +338,6 @@ function App() {
     }
   };
 
-  const abrirGmail = async () => {
-    if (!emailDestinatario) {
-      alert('Por favor, digite o email do destinatário');
-      return;
-    }
-    
-    const modalidadeTexto = modalidade === 'eja' ? ' EJA' : '';
-    const tipoTexto = tipoDeclaracao === 'cursando' ? `Declaração de Matrícula${modalidadeTexto}` : `Declaração de Conclusão${modalidadeTexto}`;
-    const assunto = encodeURIComponent(`${tipoTexto} - ${formData.nomeAluno || 'Aluno'}`);
-    const corpo = encodeURIComponent(
-      `Prezado(a),\n\n` +
-      `Segue em anexo a ${tipoTexto} do(a) aluno(a) ${formData.nomeAluno || '[NOME DO ALUNO]'}, ` +
-      `${formData.serie || '[SÉRIE]'} série${modalidade === 'eja' ? ' na modalidade EJA' : ''}, ano ${formData.ano}.\n\n` +
-      `Atenciosamente,\n` +
-      `Secretaria Escolar\n` +
-      `EEEFM João Silveira Guimarães\n` +
-      `pablu.silva@escola.pb.gov.br`
-    );
-    
-    window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emailDestinatario}&su=${assunto}&body=${corpo}`, '_blank');
-    setMostrarEmailOpcoes(true);
-  };
-
-  const abrirEmailPadrao = async () => {
-    if (!emailDestinatario) {
-      alert('Por favor, digite o email do destinatário');
-      return;
-    }
-    
-    const modalidadeTexto = modalidade === 'eja' ? ' EJA' : '';
-    const tipoTexto = tipoDeclaracao === 'cursando' ? `Declaração de Matrícula${modalidadeTexto}` : `Declaração de Conclusão${modalidadeTexto}`;
-    const assunto = encodeURIComponent(`${tipoTexto} - ${formData.nomeAluno || 'Aluno'}`);
-    const corpo = encodeURIComponent(
-      `Prezado(a),\n\n` +
-      `Segue em anexo a ${tipoTexto} do(a) aluno(a) ${formData.nomeAluno || '[NOME DO ALUNO]'}, ` +
-      `${formData.serie || '[SÉRIE]'} série${modalidade === 'eja' ? ' na modalidade EJA' : ''}, ano ${formData.ano}.\n\n` +
-      `Atenciosamente,\n` +
-      `Secretaria Escolar\n` +
-      `EEEFM João Silveira Guimarães\n` +
-      `pablu.silva@escola.pb.gov.br`
-    );
-    
-    window.location.href = `mailto:${emailDestinatario}?subject=${assunto}&body=${corpo}`;
-  };
   const enviarViaWhatsApp = async () => {
     if (!numeroWhatsApp) {
       alert('Por favor, digite o número do WhatsApp');
@@ -457,8 +410,7 @@ function App() {
       ano: new Date().getFullYear().toString(),
       cpf: ''
     });
-    setEmailDestinatario('');
-    setMostrarEmailOpcoes(false);
+    setNumeroWhatsApp('');
     setCpfBusca('');
   };
 
@@ -796,59 +748,6 @@ function App() {
                 </CardContent>
               </Card>
 
-              {/* Envio por Email */}
-              {dadosConfirmados && (
-                <Card className="shadow-lg border-t-4 border-t-green-600">
-                  <CardHeader className="bg-gradient-to-r from-green-50 to-white">
-                    <CardTitle className="text-lg text-green-700 flex items-center gap-2">
-                      <Mail className="w-5 h-5" />
-                      Enviar por Email
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="emailDestinatario" className="text-gray-700">Email do Destinatário</Label>
-                      <Input 
-                        id="emailDestinatario" 
-                        value={emailDestinatario}
-                        onChange={(e) => setEmailDestinatario(e.target.value)}
-                        placeholder="exemplo@email.com"
-                        type="email"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        onClick={abrirGmail}
-                        className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 py-5"
-                      >
-                        <Mail className="w-4 h-4 mr-2" />
-                        Abrir Gmail
-                      </Button>
-                      <Button 
-                        onClick={abrirEmailPadrao}
-                        variant="outline"
-                        className="border-blue-900 text-blue-900 hover:bg-blue-50 py-5"
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Email do PC
-                      </Button>
-                    </div>
-                    
-                    {mostrarEmailOpcoes && (
-                      <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 text-sm text-yellow-800">
-                        <p className="font-medium mb-2">📎 Como anexar o PDF:</p>
-                        <ol className="list-decimal list-inside space-y-1">
-                          <li>O Gmail foi aberto em uma nova aba</li>
-                          <li>Clique em <strong>"Baixar PDF"</strong> abaixo</li>
-                          <li>No Gmail, clique no ícone de clip 📎</li>
-                          <li>Selecione o arquivo PDF baixado</li>
-                        </ol>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
 
               {/* Envio por WhatsApp */}
               {dadosConfirmados && (
