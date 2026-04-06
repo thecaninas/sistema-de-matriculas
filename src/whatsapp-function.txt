@@ -1,0 +1,60 @@
+  const enviarViaWhatsApp = async () => {
+    if (!numeroWhatsApp) {
+      alert('Por favor, digite o número do WhatsApp');
+      return;
+    }
+
+    setEnviandoWhatsApp(true);
+    try {
+      const pdf = await gerarPDF();
+      if (!pdf) {
+        alert('Erro ao gerar PDF');
+        setEnviandoWhatsApp(false);
+        return;
+      }
+
+      const base64 = await blobToBase64(pdf);
+      const modalidadeTexto = modalidade === 'eja' ? ' EJA' : '';
+      const tipoTexto = tipoDeclaracao === 'cursando' ? `Declaração de Matrícula${modalidadeTexto}` : `Declaração de Conclusão${modalidadeTexto}`;
+      const fileName = `Declaracao_${tipoDeclaracao === 'cursando' ? 'Matricula' : 'Conclusao'}_${modalidade === 'eja' ? 'EJA_' : ''}${formData.nomeAluno.replace(/\s+/g, '_') || 'Aluno'}.pdf`;
+
+      const result = await sendDocumentViaWhatsApp({
+        phoneNumber: numeroWhatsApp,
+        pdfBase64: base64,
+        fileName: fileName,
+        caption: `${tipoTexto} - ${formData.nomeAluno}`
+      });
+
+      if (result.success) {
+        // Salvar no histórico
+        const novaDeclaracao: Declaracao = {
+          id: Date.now().toString(),
+          data: new Date().toISOString(),
+          nomeAluno: formData.nomeAluno || '[NOME DO ALUNO]',
+          serie: formData.serie || '[SÉRIE]',
+          ano: formData.ano,
+          tipo: tipoDeclaracao,
+          modalidade: modalidade,
+          status: tipoDeclaracao === 'cursou' ? statusAluno : undefined,
+          cpf: formData.cpf
+        };
+        salvarHistorico([novaDeclaracao, ...historico]);
+
+        // Abrir WhatsApp Web
+        const cleanPhone = numeroWhatsApp.replace(/\D/g, '');
+        const message = encodeURIComponent(`Olá! Segue em anexo a ${tipoTexto} do(a) aluno(a) ${formData.nomeAluno}.`);
+        window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+
+        alert('Arquivo pronto para envio! Abra o WhatsApp Web para enviar.');
+        setNumeroWhatsApp('');
+        setMostrarWhatsAppOpcoes(false);
+      } else {
+        alert(`Erro: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erro ao enviar via WhatsApp:', error);
+      alert('Erro ao processar o envio. Tente novamente.');
+    } finally {
+      setEnviandoWhatsApp(false);
+    }
+  };

@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Mail, Download, Share2, GraduationCap, BookOpen, Database, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Mail, Download, Share2, GraduationCap, BookOpen, Database, CheckCircle, AlertCircle, MessageCircle, Loader } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
+import { blobToBase64, sendDocumentViaWhatsApp } from '@/services/whatsappService';
 import './App.css';
 
 interface FormData {
@@ -49,6 +50,11 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [emailDestinatario, setEmailDestinatario] = useState('');
   const [mostrarEmailOpcoes, setMostrarEmailOpcoes] = useState(false);
+  
+  // WhatsApp
+  const [numeroWhatsApp, setNumeroWhatsApp] = useState('');
+  const [mostrarWhatsAppOpcoes, setMostrarWhatsAppOpcoes] = useState(false);
+  const [enviandoWhatsApp, setEnviandoWhatsApp] = useState(false);
   
   // Tipo de declaração
   const [tipoDeclaracao, setTipoDeclaracao] = useState<'cursando' | 'cursou'>('cursando');
@@ -378,6 +384,66 @@ function App() {
     );
     
     window.location.href = `mailto:${emailDestinatario}?subject=${assunto}&body=${corpo}`;
+  };
+  const enviarViaWhatsApp = async () => {
+    if (!numeroWhatsApp) {
+      alert('Por favor, digite o número do WhatsApp');
+      return;
+    }
+
+    setEnviandoWhatsApp(true);
+    try {
+      const pdf = await gerarPDF();
+      if (!pdf) {
+        alert('Erro ao gerar PDF');
+        setEnviandoWhatsApp(false);
+        return;
+      }
+
+      const base64 = await blobToBase64(pdf);
+      const modalidadeTexto = modalidade === 'eja' ? ' EJA' : '';
+      const tipoTexto = tipoDeclaracao === 'cursando' ? `Declaração de Matrícula${modalidadeTexto}` : `Declaração de Conclusão${modalidadeTexto}`;
+      const fileName = `Declaracao_${tipoDeclaracao === 'cursando' ? 'Matricula' : 'Conclusao'}_${modalidade === 'eja' ? 'EJA_' : ''}${formData.nomeAluno.replace(/\s+/g, '_') || 'Aluno'}.pdf`;
+
+      const result = await sendDocumentViaWhatsApp({
+        phoneNumber: numeroWhatsApp,
+        pdfBase64: base64,
+        fileName: fileName,
+        caption: `${tipoTexto} - ${formData.nomeAluno}`
+      });
+
+      if (result.success) {
+        // Salvar no histórico
+        const novaDeclaracao: Declaracao = {
+          id: Date.now().toString(),
+          data: new Date().toISOString(),
+          nomeAluno: formData.nomeAluno || '[NOME DO ALUNO]',
+          serie: formData.serie || '[SÉRIE]',
+          ano: formData.ano,
+          tipo: tipoDeclaracao,
+          modalidade: modalidade,
+          status: tipoDeclaracao === 'cursou' ? statusAluno : undefined,
+          cpf: formData.cpf
+        };
+        salvarHistorico([novaDeclaracao, ...historico]);
+
+        // Abrir WhatsApp Web
+        const cleanPhone = numeroWhatsApp.replace(/\D/g, '');
+        const message = encodeURIComponent(`Olá! Segue em anexo a ${tipoTexto} do(a) aluno(a) ${formData.nomeAluno}.`);
+        window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+
+        alert('Arquivo pronto para envio! Abra o WhatsApp Web para enviar.');
+        setNumeroWhatsApp('');
+        setMostrarWhatsAppOpcoes(false);
+      } else {
+        alert(`Erro: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erro ao enviar via WhatsApp:', error);
+      alert('Erro ao processar o envio. Tente novamente.');
+    } finally {
+      setEnviandoWhatsApp(false);
+    }
   };
 
   const limparFormulario = () => {
@@ -777,6 +843,64 @@ function App() {
                           <li>Clique em <strong>"Baixar PDF"</strong> abaixo</li>
                           <li>No Gmail, clique no ícone de clip 📎</li>
                           <li>Selecione o arquivo PDF baixado</li>
+                        </ol>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Envio por WhatsApp */}
+              {dadosConfirmados && (
+                <Card className="shadow-lg border-t-4 border-t-green-600">
+                  <CardHeader className="bg-gradient-to-r from-green-50 to-white">
+                    <CardTitle className="text-lg text-green-700 flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5" />
+                      Enviar via WhatsApp
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="numeroWhatsApp" className="text-gray-700">
+                        Número do WhatsApp (com DDD)
+                      </Label>
+                      <Input 
+                        id="numeroWhatsApp"
+                        value={numeroWhatsApp}
+                        onChange={(e) => setNumeroWhatsApp(e.target.value)}
+                        placeholder="Ex: 83 98765-4321 ou 83987654321"
+                        className="focus:ring-green-600"
+                      />
+                      <p className="text-xs text-gray-500">Digite o número com DDD. Exemplo: 83 ou 85</p>
+                    </div>
+                    
+                    <Button 
+                      onClick={enviarViaWhatsApp}
+                      disabled={enviandoWhatsApp || !numeroWhatsApp}
+                      className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 py-5"
+                    >
+                      {enviandoWhatsApp ? (
+                        <>
+                          <Loader className="w-4 h-4 mr-2 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Enviar via WhatsApp
+                        </>
+                      )}
+                    </Button>
+                    
+                    {mostrarWhatsAppOpcoes && (
+                      <div className="bg-green-50 border border-green-300 rounded-lg p-4 text-sm text-green-800">
+                        <p className="font-medium mb-2">✓ Arquivo pronto para envio!</p>
+                        <ol className="list-decimal list-inside space-y-1">
+                          <li>O WhatsApp Web foi aberto em uma nova aba</li>
+                          <li>Selecione o contato ou grupo</li>
+                          <li>Clique no ícone de clipe 📎</li>
+                          <li>Selecione o arquivo PDF baixado</li>
+                          <li>Envie a mensagem</li>
                         </ol>
                       </div>
                     )}
