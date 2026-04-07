@@ -5,15 +5,16 @@
 
 interface StudentData {
   nomeAluno: string;
-  cpf: string;
+  cpf?: string;
   dataNascimento: string;
   serie: string;
-  ano: string;
+  ano?: string;
   nomeMae: string;
   nomePai: string;
   naturalidade: string;
   escola?: string;
   gre?: string;
+  camposVazios?: string[];
 }
 
 interface ApiResponse {
