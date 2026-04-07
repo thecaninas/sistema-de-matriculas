@@ -8,6 +8,7 @@ import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Downl
 import html2pdf from 'html2pdf.js';
 import { blobToBase64, sendDocumentViaWhatsApp } from '@/services/whatsappService';
 import { searchStudentByCPF } from '@/services/siageApi';
+import { CSVUploadModal } from '@/components/CSVUploadModal';
 // import { loadStudentsFromLocalStorage, getStudentsDataInfo } from '@/services/csvImportService';
 import './App.css';
 
@@ -71,6 +72,7 @@ function App() {
   const [dadosConfirmados, setDadosConfirmados] = useState(false);
   
   // CSV Import
+  const [mostrarUploadCSV, setMostrarUploadCSV] = useState(false);
   // const [estudantesCSV, setEstudantesCSV] = useState<any[]>([]);
   // const [infoCSV, setInfoCSV] = useState({ count: 0, updatedAt: null as string | null });
   
@@ -597,9 +599,14 @@ function App() {
               <p className="text-sm text-blue-200">Sistema de Declarações de Matrícula</p>
             </div>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900">
-            <LogOut className="w-4 h-4 mr-2" /> Sair
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setMostrarUploadCSV(true)} variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900">
+              <Database className="w-4 h-4 mr-2" /> Importar Dados
+            </Button>
+            <Button onClick={handleLogout} variant="outline" className="border-white text-white hover:bg-white hover:text-blue-900">
+              <LogOut className="w-4 h-4 mr-2" /> Sair
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -1140,6 +1147,12 @@ function App() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Upload CSV */}
+      <CSVUploadModal 
+        isOpen={mostrarUploadCSV} 
+        onClose={() => setMostrarUploadCSV(false)}
+      />
     </div>
   );
 }
