@@ -8,6 +8,7 @@ import { FileText, RefreshCw, History, LogOut, User, Lock, Search, Trash2, Downl
 import html2pdf from 'html2pdf.js';
 import { blobToBase64, sendDocumentViaWhatsApp } from '@/services/whatsappService';
 import { searchStudentByCPF } from '@/services/siageApi';
+// import { loadStudentsFromLocalStorage, getStudentsDataInfo } from '@/services/csvImportService';
 import './App.css';
 
 interface FormData {
@@ -69,6 +70,10 @@ function App() {
   const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [dadosConfirmados, setDadosConfirmados] = useState(false);
   
+  // CSV Import
+  // const [estudantesCSV, setEstudantesCSV] = useState<any[]>([]);
+  // const [infoCSV, setInfoCSV] = useState({ count: 0, updatedAt: null as string | null });
+  
   const [formData, setFormData] = useState<FormData>({
     nomeAluno: '',
     dataNascimento: '',
@@ -94,6 +99,11 @@ function App() {
     const mes = (hoje.getMonth() + 1).toString().padStart(2, '0');
     const ano = hoje.getFullYear();
     setDataAtual(`${dia}/${mes}/${ano}`);
+    
+    // Carregar dados de alunos do CSV (será implementado em breve)
+    // const estudantes = loadStudentsFromLocalStorage();
+    // setEstudantesCSV(estudantes);
+    // setInfoCSV(getStudentsDataInfo());
   }, []);
 
   // Salvar histórico no localStorage
